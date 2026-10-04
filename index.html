@@ -948,11 +948,48 @@
             }
         }
 
+        // Encrypt combination into an authentic escape-room session token (e.g. ?room=5E2B9A1F4C)
+        function encodeRoomCode(digits) {
+            const salt = Math.floor(Math.random() * 200) + 20; // 20 - 219
+            const primes = [17, 31, 53, 79];
+            const parts = [salt.toString(16).padStart(2, '0')];
+            for (let i = 0; i < 4; i++) {
+                const d = parseInt(digits[i], 10) || 0;
+                const enc = (d ^ (salt + primes[i])) & 0xFF;
+                parts.push(enc.toString(16).padStart(2, '0'));
+            }
+            return parts.join('').toUpperCase();
+        }
+
+        // Decrypt escape-room session token back to 4 digits
+        function decodeRoomCode(token) {
+            if (!token || token.length !== 10) return null;
+            try {
+                const salt = parseInt(token.substr(0, 2), 16);
+                if (isNaN(salt)) return null;
+                const primes = [17, 31, 53, 79];
+                let res = '';
+                for (let i = 0; i < 4; i++) {
+                    const enc = parseInt(token.substr(2 + i * 2, 2), 16);
+                    if (isNaN(enc)) return null;
+                    const d = (enc ^ (salt + primes[i])) & 0xFF;
+                    if (d < 0 || d > 9) return null;
+                    res += d;
+                }
+                return res.length === 4 ? res : null;
+            } catch(e) {
+                return null;
+            }
+        }
+
         function copyGuestLink() {
             const digits = `${targetDigits[1]}${targetDigits[2]}${targetDigits[3]}${targetDigits[4]}`;
+            const token = encodeRoomCode(digits);
             const url = new URL(window.location.href);
-            url.searchParams.set('code', digits);
+            url.searchParams.delete('code');
+            url.searchParams.delete('c');
             url.searchParams.delete('admin');
+            url.searchParams.set('room', token);
             navigator.clipboard.writeText(url.toString()).then(() => {
                 const btnText = document.getElementById('copy-btn-text');
                 if (btnText) {
@@ -960,7 +997,7 @@
                     setTimeout(() => btnText.innerText = "Copy Link", 2500);
                 }
             }).catch(() => {
-                prompt("Copy this URL for guests:", url.toString());
+                prompt("Copy this encrypted game link for guests:", url.toString());
             });
         }
 
@@ -995,20 +1032,31 @@
                 adminPin = savedPin;
             }
 
-            // Check if URL has ?code=XXXX or ?c=XXXX to override target digits for guests
             const urlParams = new URLSearchParams(window.location.search);
-            const codeParam = urlParams.get('code') || urlParams.get('c');
-            if (codeParam && codeParam.length === 4) {
-                targetDigits[1] = codeParam[0];
-                targetDigits[2] = codeParam[1];
-                targetDigits[3] = codeParam[2];
-                targetDigits[4] = codeParam[3];
+
+            // 1. Check for encrypted ?room=XXXXXXXXXX token (doesn't expose digits!)
+            const roomToken = urlParams.get('room');
+            const decodedRoom = decodeRoomCode(roomToken);
+            if (decodedRoom) {
+                targetDigits[1] = decodedRoom[0];
+                targetDigits[2] = decodedRoom[1];
+                targetDigits[3] = decodedRoom[2];
+                targetDigits[4] = decodedRoom[3];
             } else {
-                const saved = localStorage.getItem('jigsaw_target_digits');
-                if (saved) {
-                    try {
-                        targetDigits = JSON.parse(saved);
-                    } catch(e) {}
+                // Legacy fallback for ?code=XXXX or ?c=XXXX
+                const codeParam = urlParams.get('code') || urlParams.get('c');
+                if (codeParam && codeParam.length === 4) {
+                    targetDigits[1] = codeParam[0];
+                    targetDigits[2] = codeParam[1];
+                    targetDigits[3] = codeParam[2];
+                    targetDigits[4] = codeParam[3];
+                } else {
+                    const saved = localStorage.getItem('jigsaw_target_digits');
+                    if (saved) {
+                        try {
+                            targetDigits = JSON.parse(saved);
+                        } catch(e) {}
+                    }
                 }
             }
 
