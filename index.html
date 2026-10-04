@@ -215,15 +215,15 @@
                 </div>
 
                 <div id="stage-body-1" class="p-4 border-t border-red-900/30 bg-red-950/10 space-y-4">
-                    <p class="text-sm text-gray-300 leading-relaxed font-mono">
+                    <p id="riddle-text-1" class="text-sm text-gray-300 leading-relaxed font-mono">
                         "I am always hungry, I must be fed. The finger I touch will soon turn red. Give me wood and I will flourish, give me water and I die."
                     </p>
-                    <p class="text-xs text-red-400 italic font-mono">
+                    <p id="riddle-rule-1" class="text-xs text-red-400 italic font-mono">
                         Rule: Enter the word. The number of letters in this word reveals Digit #1!
                     </p>
 
                     <div class="flex flex-col sm:flex-row gap-2">
-                        <input type="text" id="input-stage-1" onkeydown="if(event.key==='Enter') submitStage(1)" placeholder="Enter answer (e.g. Fire / Feuer)..." class="cyber-input px-3 py-2 text-sm rounded flex-1 uppercase tracking-wider font-mono">
+                        <input type="text" id="input-stage-1" onkeydown="if(event.key==='Enter') submitStage(1)" placeholder="Enter answer..." class="cyber-input px-3 py-2 text-sm rounded flex-1 uppercase tracking-wider font-mono">
                         <button onclick="submitStage(1)" class="px-5 py-2 bg-red-900 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-widest rounded transition duration-200">
                             Submit Answer
                         </button>
@@ -236,7 +236,7 @@
                         <p id="msg-1" class="text-xs font-mono font-bold hidden"></p>
                     </div>
                     <div id="hint-text-1" class="text-xs text-yellow-500 bg-yellow-950/30 border border-yellow-900/50 p-2.5 rounded hidden">
-                        Hint: Spreads quickly in cold dark forests. In English it has 4 letters (FIRE), in German 5 letters (FEUER). Either word will reveal your digit!
+                        Hint: Spreads quickly in cold dark forests. In English it has 4 letters , in German 5 letters. Either word will reveal your digit!
                     </div>
                 </div>
             </div>
@@ -300,7 +300,7 @@
                     </p>
 
                     <div class="flex flex-col sm:flex-row gap-2">
-                        <input type="text" id="input-stage-3" onkeydown="if(event.key==='Enter') submitStage(3)" placeholder="Enter actor's name (e.g. Shatner)..." class="cyber-input px-3 py-2 text-sm rounded flex-1 uppercase tracking-wider font-mono">
+                        <input type="text" id="input-stage-3" onkeydown="if(event.key==='Enter') submitStage(3)" placeholder="Enter actor's last name..." class="cyber-input px-3 py-2 text-sm rounded flex-1 uppercase tracking-wider font-mono">
                         <button onclick="submitStage(3)" class="px-5 py-2 bg-red-900 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-widest rounded transition duration-200">
                             Submit Answer
                         </button>
@@ -313,7 +313,7 @@
                         <p id="msg-3" class="text-xs font-mono font-bold hidden"></p>
                     </div>
                     <div id="hint-text-3" class="text-xs text-yellow-500 bg-yellow-950/30 border border-yellow-900/50 p-2.5 rounded hidden">
-                        Hint: He played Captain James T. Kirk in Star Trek. His last name is Shatner!
+                        Hint: He famously portrayed Captain James T. Kirk on the bridge of the USS Enterprise in the original 1960s Star Trek series.
                     </div>
                 </div>
             </div>
@@ -354,7 +354,7 @@
                         <p id="msg-4" class="text-xs font-mono font-bold hidden"></p>
                     </div>
                     <div id="hint-text-4" class="text-xs text-yellow-500 bg-yellow-950/30 border border-yellow-900/50 p-2.5 rounded hidden">
-                        Hint: The witch lies (0 truth). Since today is a full moon, the vampire also lies. The werewolf states that the vampire lies, which is TRUE! So exactly 1 creature is telling the truth.
+                        Hint: Analyze each statement step-by-step. First determine if the vampire is lying given today's moon condition, then evaluate whether the werewolf's claim is accurate.
                     </div>
                 </div>
             </div>
@@ -656,6 +656,90 @@
             updateLockDisplay();
         });
 
+        // Dynamic Spooky Riddles dictionary for Trial 1 (covers digits 0-9)
+        const stage1Riddles = {
+    '0': {
+        digit: '0',
+        word: 'NOTHING',
+        prompt: '"Before the first heartbeat of time, I reigned supreme. I have no shadow because I possess no light; no voice, yet I devour empires. Cut me in half and I remain unbroken. What am I?"',
+        rule: 'Rule: Solve the riddle of the void. The mathematical value of absolute non-existence unlocks Digit #1!',
+        hint: 'Hint: Consider what remains in a room when all matter, light, and thought are erased.',
+        validAnswers: ['nothing', 'oblivion', 'void', 'zero', 'nichts', '0']
+    },
+    '1': {
+        digit: '1',
+        word: 'I',
+        prompt: '"I am the solitary prisoner who can never escape your skull. I stand upright like a freshly erected gallows, observing the world through two glass windows of flesh. What singular pronoun am I?"',
+        rule: 'Rule: Identify the pronoun of self-isolation. Its character count yields Digit #1!',
+        hint: 'Hint: Look inward. The most fundamental 1-letter center of consciousness in the English language.',
+        validAnswers: ['i', 'ich', '1']
+    },
+    '2': {
+        digit: '2',
+        word: 'ME',
+        prompt: '"Two letters bind the victim to the executioner. Speak this word to claim full ownership of your sins before Jigsaw tests your resolve tonight. Who is the guilty party?"',
+        rule: 'Rule: Name the accused reflection. Count the letters in your answer to obtain Digit #1!',
+        hint: 'Hint: When Jigsaw asks "Who is responsible for this wasted life?", the confession begins with this 2-letter word.',
+        validAnswers: ['me', 'ich', '2']
+    },
+    '3': {
+        digit: '3',
+        word: 'BAT',
+        prompt: '"I wear shrouds of leathery darkness and navigate the abyss using only the echoes of your terror. Blind to salvation, I hang like an inverted corpse awaiting the harvest of dusk. What beast am I?"',
+        rule: 'Rule: Unmask the winged subterranean hunter. Calculate its letter count to reveal Digit #1!',
+        hint: 'Hint: A nocturnal mammal that relies on echolocation within pitch-black caverns.',
+        validAnswers: ['bat', 'fledermaus', 'owl', '3']
+    },
+    '4': {
+        digit: '4',
+        word: 'FIRE',
+        prompt: '"I dance without legs, bite without teeth, and leave behind only weeping ash. Born from a spark of wrath, timber nourishes my hunger, but a single tear of baptism suffocates my life. What am I?"',
+        rule: 'Rule: Name the burning chemical cascade. The letter count of the word extracts Digit #1!',
+        hint: 'Hint: An elemental reaction requiring fuel, heat, and oxygen to consume everything in its path.',
+        validAnswers: ['fire', 'feuer', '4']
+    },
+    '5': {
+        digit: '5',
+        word: 'GHOST',
+        prompt: '"I am a cold whisper left behind when the throat is still. I inhabit rooms without occupying space, heavy as unconfessed guilt yet lighter than a dying breath. What entity am I?"',
+        rule: 'Rule: Identify the lingering manifestation. Count its letters to reveal Digit #1!',
+        hint: 'Hint: A spirit trapped between realms by unresolved tragedy, haunting the place of its demise.',
+        validAnswers: ['ghost', 'geist', 'wraith', 'phantom', '5']
+    },
+    '6': {
+        digit: '6',
+        word: 'COFFIN',
+        prompt: '"My walls are polished mahogany, my lining crimson velvet, my door locked forever from the outside. I am custom-tailored for a client who will never complain about the fit. What narrow home am I?"',
+        rule: 'Rule: Solve the vessel of eternal slumber. Convert its total letter count into Digit #1!',
+        hint: 'Hint: The final wooden vessel lowered six feet into damp earth.',
+        validAnswers: ['coffin', 'sarg', 'zombie', '6']
+    },
+    '7': {
+        digit: '7',
+        word: 'VAMPIRE',
+        prompt: '"I am an immortal leech clad in aristocracy, stealing youth from warm veins to cheat the grave. Silver wounds my pride, dawns burn my flesh, and I cannot cross your threshold uninvited. What am I?"',
+        rule: 'Rule: Unmask the aristocratic parasite. The character length of its species unlocks Digit #1!',
+        hint: 'Hint: An undead blood-feeder repelled by crucifixes, garlic, and running water.',
+        validAnswers: ['vampire', 'vampir', '7']
+    },
+    '8': {
+        digit: '8',
+        word: 'SKELETON',
+        prompt: '"I am an architecture of chalk and marrow, hidden beneath a tapestry of flesh. I walk among you unseen every day, but when rot cleanses your body, I remain to grin at eternity. What structure am I?"',
+        rule: 'Rule: Expose the subterranean framework. Compute the full letter count of the answer for Digit #1!',
+        hint: 'Hint: The rigid interior scaffold of bone left behind long after muscle and skin decay.',
+        validAnswers: ['skeleton', 'skelett', 'werewolf', '8']
+    },
+    '9': {
+        digit: '9',
+        word: 'NIGHTMARE',
+        prompt: '"I weave tapestries of horror in the dark theatre of your mind while your muscles lie paralyzed in REM sleep. I feed on cold sweat and adrenaline, vanishing the moment your eyelids break free. What am I?"',
+        rule: 'Rule: Identify the terror of slumber. Calculate its total character length to reveal Digit #1!',
+        hint: 'Hint: A psychological panic attack produced internally while dreaming in the dark.',
+        validAnswers: ['nightmare', 'alptraum', 'graveyard', '9']
+    }
+};
+
         // Submit answer for stage
         function submitStage(stageNum) {
             playBeepSound(600, 'square', 0.05);
@@ -665,8 +749,14 @@
             let isCorrect = false;
 
             if (stageNum === 1) {
-                // Accepts "fire" (4) or "feuer" (5) -> both map to digit 1
-                if (inputVal === 'fire' || inputVal === 'feuer' || inputVal === '4' || inputVal === '5') {
+                const d1 = String(targetDigits[1] !== undefined ? targetDigits[1] : '4').trim();
+                const rData = stage1Riddles[d1] || stage1Riddles['4'];
+                const cleanInput = inputVal.toLowerCase().replace(/[^a-z0-9]/g, '');
+                const expectedLen = parseInt(d1, 10);
+                
+                if (rData.validAnswers.includes(cleanInput) || 
+                    (expectedLen > 0 && cleanInput.length === expectedLen) || 
+                    cleanInput === d1) {
                     isCorrect = true;
                 }
             } else if (stageNum === 2) {
@@ -808,6 +898,16 @@
                 badge.innerText = "LOCKED";
                 badge.className = "text-red-500 font-bold";
             }
+
+            // Dynamically update Trial 1 Riddle, Rule & Hint based on targetDigits[1]
+            const d1 = String(targetDigits[1] !== undefined ? targetDigits[1] : '4').trim();
+            const rData = stage1Riddles[d1] || stage1Riddles['4'];
+            const rText = document.getElementById('riddle-text-1');
+            const rRule = document.getElementById('riddle-rule-1');
+            const rHint = document.getElementById('hint-text-1');
+            if (rText) rText.innerText = rData.prompt;
+            if (rRule) rRule.innerText = rData.rule;
+            if (rHint) rHint.innerText = rData.hint;
 
             // Dynamically update Trial 2 binary signal & hint based on targetDigits[2]
             const binDisplay = document.getElementById('binary-display-2');
