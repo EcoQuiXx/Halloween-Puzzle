@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jigsaw Protocol - Drinks Room Unlock</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&family=Creepster&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #050203;
+            --terminal-green: #00ff66;
+            --blood-red: #ff0033;
+            --dark-red: #4a000b;
+            --glow-green: 0 0 10px rgba(0, 255, 102, 0.6), 0 0 20px rgba(0, 255, 102, 0.4);
+            --glow-red: 0 0 12px rgba(255, 0, 51, 0.8), 0 0 25px rgba(255, 0, 51, 0.5);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: #d1d5db;
+            font-family: 'Share Tech Mono', 'Fira Code', monospace;
+            overflow-x: hidden;
+        }
+
+        .font-creepster {
+            font-family: 'Creepster', cursive;
+        }
+
+        /* CRT Overlay & Scanlines Effect */
+        .crt::before {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 50;
+            background-size: 100% 3px, 6px 100%;
+            pointer-events: none;
+            opacity: 0.85;
+        }
+
+        .crt-vignette {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            box-shadow: inset 0 0 120px rgba(0,0,0,0.95), inset 0 0 40px rgba(180, 0, 30, 0.3);
+            pointer-events: none;
+            z-index: 51;
+        }
+
+        /* Custom Animations & Glitch */
+        @keyframes flicker {
+            0% { opacity: 0.97; }
+            50% { opacity: 1; }
+            52% { opacity: 0.88; }
+            54% { opacity: 1; }
+            80% { opacity: 0.94; }
+            100% { opacity: 0.98; }
+        }
+
+        .flicker-screen {
+            animation: flicker 0.15s infinite;
+        }
+
+        @keyframes pulse-red {
+            0%, 100% { text-shadow: var(--glow-red); transform: scale(1); }
+            50% { text-shadow: 0 0 20px rgba(255, 0, 51, 1), 0 0 35px rgba(255, 0, 51, 0.8); transform: scale(1.02); }
+        }
+
+        .pulse-glow-red {
+            animation: pulse-red 2.5s infinite ease-in-out;
+        }
+
+        .green-glow-text {
+            text-shadow: var(--glow-green);
+        }
+
+        .red-glow-text {
+            text-shadow: var(--glow-red);
+        }
+
+        /* Custom Input styling */
+        .cyber-input {
+            background: rgba(10, 5, 8, 0.9);
+            border: 1px solid #ff0033;
+            color: #00ff66;
+            box-shadow: inset 0 0 10px rgba(255, 0, 51, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .cyber-input:focus {
+            outline: none;
+            border-color: #00ff66;
+            box-shadow: 0 0 15px rgba(0, 255, 102, 0.5), inset 0 0 10px rgba(0, 255, 102, 0.2);
+        }
+
+        /* Digit Box Lock Styles */
+        .digit-box {
+            background: linear-gradient(180deg, #180508 0%, #080203 100%);
+            border: 2px solid #5a0a14;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .digit-box.unlocked {
+            border-color: #00ff66;
+            box-shadow: var(--glow-green);
+            background: linear-gradient(180deg, #022010 0%, #010a05 100%);
+            color: #00ff66;
+        }
+
+        .digit-box.locked {
+            color: #ff0033;
+            text-shadow: var(--glow-red);
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #080203;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4a000b;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="crt min-h-screen flex flex-col justify-between selection:bg-red-900 selection:text-white relative">
+    <div class="crt-vignette"></div>
+
+    <!-- Top Audio & Settings Bar -->
+    <header class="w-full border-b border-red-900/40 bg-black/80 backdrop-blur px-4 py-3 flex justify-between items-center z-20">
+        <div class="flex items-center gap-3">
+            <span class="inline-block w-3 h-3 rounded-full bg-red-600 animate-ping"></span>
+            <span class="text-xs tracking-widest text-red-500 uppercase font-bold hidden sm:inline">SYSTEM: JIGSAW_PROTOCOL_v4.2</span>
+            <span class="text-xs text-gray-500 sm:hidden">JIGSAW v4.2</span>
+        </div>
+        
+        <div class="flex items-center gap-3">
+            <button id="bgm-btn" onclick="toggleAmbientDrone()" class="px-3 py-1 text-xs border border-red-900 bg-red-950/40 hover:bg-red-900/60 text-red-400 rounded transition flex items-center gap-2">
+                <i id="bgm-icon" class="fas fa-volume-xmark"></i>
+                <span id="bgm-text" class="hidden sm:inline">AMBIENT AUDIO</span>
+            </button>
+            <button onclick="openConfigModal()" class="px-3 py-1 text-xs border border-gray-800 bg-gray-900/60 hover:bg-gray-800 text-gray-400 rounded transition flex items-center gap-1.5" title="Configure Padlock Combination">
+                <i class="fas fa-key text-yellow-600"></i>
+                <span class="hidden sm:inline">HOST SETTINGS</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="container mx-auto max-w-4xl px-4 py-6 z-10 flex-1 flex flex-col justify-center items-center">
+        
+        <!-- Header / Saw Title -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl sm:text-6xl font-creepster tracking-widest text-red-600 pulse-glow-red uppercase mb-2">
+                I WANT TO PLAY A GAME
+            </h1>
+            <p class="text-sm sm:text-base text-gray-400 max-w-xl mx-auto font-mono">
+                The drinks room is sealed. Solve all 4 trials to extract the 4-digit combination for the lock. Time is slipping away...
+            </p>
+        </div>
+
+        <!-- 4-Digit Live Padlock Combination Display -->
+        <div class="w-full max-w-2xl bg-black/90 border-2 border-red-900/80 p-6 rounded-xl shadow-2xl shadow-red-950/80 mb-8 backdrop-blur">
+            <div class="text-center mb-3">
+                <span class="text-xs text-red-500 tracking-widest uppercase font-bold">CURRENT LOCK COMBINATION</span>
+            </div>
+            
+            <div class="grid grid-cols-4 gap-3 sm:gap-6 max-w-md mx-auto">
+                <div id="digit-card-1" class="digit-box locked h-20 sm:h-24 rounded-lg flex flex-col items-center justify-center font-mono border-red-900 shadow-inner">
+                    <span class="text-xs text-gray-500 mb-1">DIGIT 1</span>
+                    <span id="digit-val-1" class="text-3xl sm:text-5xl font-bold font-mono">?</span>
+                </div>
+                <div id="digit-card-2" class="digit-box locked h-20 sm:h-24 rounded-lg flex flex-col items-center justify-center font-mono border-red-900 shadow-inner">
+                    <span class="text-xs text-gray-500 mb-1">DIGIT 2</span>
+                    <span id="digit-val-2" class="text-3xl sm:text-5xl font-bold font-mono">?</span>
+                </div>
+                <div id="digit-card-3" class="digit-box locked h-20 sm:h-24 rounded-lg flex flex-col items-center justify-center font-mono border-red-900 shadow-inner">
+                    <span class="text-xs text-gray-500 mb-1">DIGIT 3</span>
+                    <span id="digit-val-3" class="text-3xl sm:text-5xl font-bold font-mono">?</span>
+                </div>
+                <div id="digit-card-4" class="digit-box locked h-20 sm:h-24 rounded-lg flex flex-col items-center justify-center font-mono border-red-900 shadow-inner">
+                    <span class="text-xs text-gray-500 mb-1">DIGIT 4</span>
+                    <span id="digit-val-4" class="text-3xl sm:text-5xl font-bold font-mono">?</span>
+                </div>
+            </div>
+
+            <!-- Progress status indicator bar -->
+            <div class="mt-5 w-full bg-red-950/40 h-2 rounded-full overflow-hidden border border-red-900/30">
+                <div id="progress-bar" class="bg-gradient-to-r from-red-600 to-green-500 h-full w-0 transition-all duration-700"></div>
+            </div>
+            <div class="flex justify-between items-center mt-2 text-xs text-gray-500 font-mono">
+                <span id="progress-text">0 OF 4 TRIALS COMPLETED</span>
+                <span id="status-badge" class="text-red-500 font-bold">LOCKED</span>
+            </div>
+        </div>
+
+        <!-- Interactive 4-Stage Accordion Container -->
+        <div class="w-full max-w-2xl space-y-4">
+
+            <!-- STAGE 1: THE RIDDLE -->
+            <div id="stage-panel-1" class="border border-red-900/60 bg-black/80 rounded-lg overflow-hidden transition-all duration-300">
+                <div class="p-4 bg-gradient-to-r from-red-950/40 to-transparent flex justify-between items-center cursor-pointer select-none" onclick="toggleAccordion(1)">
+                    <div class="flex items-center gap-3">
+                        <span id="stage-icon-1" class="w-7 h-7 rounded-full border border-red-600 bg-red-950/80 text-red-400 flex items-center justify-center text-xs font-bold">1</span>
+                        <div>
+                            <h3 id="stage-title-1" class="text-base font-bold text-red-500 tracking-wide">TRIAL 1: THE CRIMSON RIDDLE</h3>
+                            <p class="text-xs text-gray-500">Extracts Code Digit 1</p>
+                        </div>
+                    </div>
+                    <span id="stage-status-1" class="text-xs text-red-500 font-bold border border-red-900 px-2 py-1 rounded bg-red-950/30">UNLOCKED</span>
+                </div>
+
+                <div id="stage-body-1" class="p-4 border-t border-red-900/30 bg-red-950/10 space-y-4">
+                    <p class="text-sm text-gray-300 leading-relaxed font-mono">
+                        "I am always hungry, I must be fed. The finger I touch will soon turn red. Give me wood and I will flourish, give me water and I die."
+                    </p>
+                    <p class="text-xs text-red-400 italic font-mono">
+                        Rule: Enter the word. The number of letters in this word reveals Digit #1!
+                    </p>
+
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input type="text" id="input-stage-1" onkeydown="if(event.key==='Enter') submitStage(1)" placeholder="Enter answer (e.g. Fire / Feuer)..." class="cyber-input px-3 py-2 text-sm rounded flex-1 uppercase tracking-wider font-mono">
+                        <button onclick="submitStage(1)" class="px-5 py-2 bg-red-900 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-widest rounded transition duration-200">
+                            Submit Answer
+                        </button>
+                    </div>
+
+                    <div class="flex justify-between items-center pt-1">
+                        <button onclick="toggleHint(1)" class="text-xs text-yellow-600 hover:text-yellow-400 flex items-center gap-1 font-mono">
+                            <i class="far fa-lightbulb"></i> <span id="hint-btn-1">Show Hint</span>
+                        </button>
+                        <p id="msg-1" class="text-xs font-mono font-bold hidden"></p>
+                    </div>
+                    <div id="hint-text-1" class="text-xs text-yellow-500 bg-yellow-950/30 border border-yellow-900/50 p-2.5 rounded hidden">
+                        Hint: Spreads quickly in cold dark forests. In English it has 4 letters (FIRE), in German 5 letters (FEUER). Either word will reveal your digit!
+                    </div>
+                </div>
+            </div>
+
+            <!-- STAGE 2: BINARY DECIPHERING -->
+            <div id="stage-panel-2" class="border border-gray-900 bg-black/80 rounded-lg overflow-hidden transition-all duration-300 opacity-60 pointer-events-none">
+                <div class="p-4 bg-gradient-to-r from-red-950/20 to-transparent flex justify-between items-center cursor-pointer select-none" onclick="toggleAccordion(2)">
+                    <div class="flex items-center gap-3">
+                        <span id="stage-icon-2" class="w-7 h-7 rounded-full border border-gray-700 bg-gray-900 text-gray-500 flex items-center justify-center text-xs font-bold">2</span>
+                        <div>
+                            <h3 class="text-base font-bold text-gray-400 tracking-wide" id="stage-title-2">TRIAL 2: THE BINARY CIPHER</h3>
+                            <p class="text-xs text-gray-500">Extracts Code Digit 2</p>
+                        </div>
+                    </div>
+                    <span id="stage-status-2" class="text-xs text-gray-600 font-bold border border-gray-800 px-2 py-1 rounded">LOCKED</span>
+                </div>
+
+                <div id="stage-body-2" class="p-4 border-t border-red-900/30 bg-red-950/10 space-y-4 hidden">
+                    <p class="text-sm text-gray-300 leading-relaxed font-mono">
+                        Convert the following 8-bit binary signal into a standard decimal integer:
+                    </p>
+                    <div class="text-center py-3 bg-black border border-green-900/60 rounded font-mono text-xl sm:text-2xl text-green-400 tracking-widest green-glow-text">
+                        0 0 0 0 0 1 1 1
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input type="number" id="input-stage-2" onkeydown="if(event.key==='Enter') submitStage(2)" placeholder="Enter decimal integer..." class="cyber-input px-3 py-2 text-sm rounded flex-1 font-mono">
+                        <button onclick="submitStage(2)" class="px-5 py-2 bg-red-900 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-widest rounded transition duration-200">
+                            Submit Answer
+                        </button>
+                    </div>
+
+                    <div class="flex justify-between items-center pt-1">
+                        <button onclick="toggleHint(2)" class="text-xs text-yellow-600 hover:text-yellow-400 flex items-center gap-1 font-mono">
+                            <i class="far fa-lightbulb"></i> <span id="hint-btn-2">Show Hint</span>
+                        </button>
+                        <p id="msg-2" class="text-xs font-mono font-bold hidden"></p>
+                    </div>
+                    <div id="hint-text-2" class="text-xs text-yellow-500 bg-yellow-950/30 border border-yellow-900/50 p-2.5 rounded hidden">
+                        Hint: Calculate (1 * 2^2) + (1 * 2^1) + (1 * 2^0) = 4 + 2 + 1.
+                    </div>
+                </div>
+            </div>
+
+            <!-- STAGE 3: HORROR TRIVIA -->
+            <div id="stage-panel-3" class="border border-gray-900 bg-black/80 rounded-lg overflow-hidden transition-all duration-300 opacity-60 pointer-events-none">
+                <div class="p-4 bg-gradient-to-r from-red-950/20 to-transparent flex justify-between items-center cursor-pointer select-none" onclick="toggleAccordion(3)">
+                    <div class="flex items-center gap-3">
+                        <span id="stage-icon-3" class="w-7 h-7 rounded-full border border-gray-700 bg-gray-900 text-gray-500 flex items-center justify-center text-xs font-bold">3</span>
+                        <div>
+                            <h3 class="text-base font-bold text-gray-400 tracking-wide" id="stage-title-3">TRIAL 3: HORROR TRIVIA</h3>
+                            <p class="text-xs text-gray-500">Extracts Code Digit 3</p>
+                        </div>
+                    </div>
+                    <span id="stage-status-3" class="text-xs text-gray-600 font-bold border border-gray-800 px-2 py-1 rounded">LOCKED</span>
+                </div>
+
+                <div id="stage-body-3" class="p-4 border-t border-red-900/30 bg-red-950/10 space-y-4 hidden">
+                    <p class="text-sm text-gray-300 leading-relaxed font-mono">
+                        "In the original 1978 movie 'Halloween', the iconic mask worn by Michael Myers was modified from a cheap $2 Halloween mask of which famous Star Trek actor?"
+                    </p>
+
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input type="text" id="input-stage-3" onkeydown="if(event.key==='Enter') submitStage(3)" placeholder="Enter actor's name (e.g. Shatner)..." class="cyber-input px-3 py-2 text-sm rounded flex-1 uppercase tracking-wider font-mono">
+                        <button onclick="submitStage(3)" class="px-5 py-2 bg-red-900 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-widest rounded transition duration-200">
+                            Submit Answer
+                        </button>
+                    </div>
+
+                    <div class="flex justify-between items-center pt-1">
+                        <button onclick="toggleHint(3)" class="text-xs text-yellow-600 hover:text-yellow-400 flex items-center gap-1 font-mono">
+                            <i class="far fa-lightbulb"></i> <span id="hint-btn-3">Show Hint</span>
+                        </button>
+                        <p id="msg-3" class="text-xs font-mono font-bold hidden"></p>
+                    </div>
+                    <div id="hint-text-3" class="text-xs text-yellow-500 bg-yellow-950/30 border border-yellow-900/50 p-2.5 rounded hidden">
+                        Hint: He played Captain James T. Kirk in Star Trek. His last name is Shatner!
+                    </div>
+                </div>
+            </div>
+
+            <!-- STAGE 4: LOGIC PUZZLE -->
+            <div id="stage-panel-4" class="border border-gray-900 bg-black/80 rounded-lg overflow-hidden transition-all duration-300 opacity-60 pointer-events-none">
+                <div class="p-4 bg-gradient-to-r from-red-950/20 to-transparent flex justify-between items-center cursor-pointer select-none" onclick="toggleAccordion(4)">
+                    <div class="flex items-center gap-3">
+                        <span id="stage-icon-4" class="w-7 h-7 rounded-full border border-gray-700 bg-gray-900 text-gray-500 flex items-center justify-center text-xs font-bold">4</span>
+                        <div>
+                            <h3 class="text-base font-bold text-gray-400 tracking-wide" id="stage-title-4">TRIAL 4: LOGIC TRAP</h3>
+                            <p class="text-xs text-gray-500">Extracts Code Digit 4</p>
+                        </div>
+                    </div>
+                    <span id="stage-status-4" class="text-xs text-gray-600 font-bold border border-gray-800 px-2 py-1 rounded">LOCKED</span>
+                </div>
+
+                <div id="stage-body-4" class="p-4 border-t border-red-900/30 bg-red-950/10 space-y-4 hidden">
+                    <p class="text-sm text-gray-300 leading-relaxed font-mono">
+                        A witch, a vampire, and a werewolf stand before you.
+                        <br>• The witch <strong>always lies</strong>.
+                        <br>• The vampire <strong>lies only on full moons</strong> (today is a full moon).
+                        <br>• The werewolf says: <em>"The vampire is lying."</em>
+                        <br><strong>How many of these 3 creatures are telling the truth right now?</strong>
+                    </p>
+
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input type="number" id="input-stage-4" onkeydown="if(event.key==='Enter') submitStage(4)" placeholder="Enter a number (0-3)..." class="cyber-input px-3 py-2 text-sm rounded flex-1 font-mono">
+                        <button onclick="submitStage(4)" class="px-5 py-2 bg-red-900 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-widest rounded transition duration-200">
+                            Submit Answer
+                        </button>
+                    </div>
+
+                    <div class="flex justify-between items-center pt-1">
+                        <button onclick="toggleHint(4)" class="text-xs text-yellow-600 hover:text-yellow-400 flex items-center gap-1 font-mono">
+                            <i class="far fa-lightbulb"></i> <span id="hint-btn-4">Show Hint</span>
+                        </button>
+                        <p id="msg-4" class="text-xs font-mono font-bold hidden"></p>
+                    </div>
+                    <div id="hint-text-4" class="text-xs text-yellow-500 bg-yellow-950/30 border border-yellow-900/50 p-2.5 rounded hidden">
+                        Hint: The witch lies (0 truth). Since today is a full moon, the vampire also lies. The werewolf states that the vampire lies, which is TRUE! So exactly 1 creature is telling the truth.
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Victory Screen Overlay -->
+    <div id="victory-modal" class="fixed inset-0 bg-black/95 z-50 flex flex-col items-center justify-center p-4 hidden backdrop-blur-md">
+        <div class="max-w-xl w-full border-2 border-green-500 bg-black p-8 rounded-2xl shadow-2xl text-center space-y-6 relative overflow-hidden">
+            <div class="absolute -top-10 -left-10 w-32 h-32 bg-green-500/10 rounded-full blur-2xl pointer-events-none"></div>
+            
+            <i class="fas fa-unlock-keyhole text-6xl text-green-400 animate-bounce green-glow-text"></i>
+            
+            <h2 class="text-4xl sm:text-5xl font-creepster text-green-400 green-glow-text tracking-widest uppercase">
+                ACCESS GRANTED
+            </h2>
+            
+            <p class="text-gray-300 text-sm font-mono leading-relaxed">
+                Congratulations! You have survived the trials and proved your worth.
+                Use the following 4-digit code on the physical padlock to open the drinks room:
+            </p>
+
+            <div class="py-4 bg-green-950/40 border border-green-500/60 rounded-xl">
+                <div id="final-code-display" class="text-5xl sm:text-6xl font-mono font-bold tracking-widest text-green-400 green-glow-text">
+                    0 - 0 - 0 - 0
+                </div>
+            </div>
+
+            <div class="pt-2">
+                <button onclick="closeVictoryModal()" class="px-8 py-3 bg-green-600 hover:bg-green-500 text-black font-bold uppercase tracking-widest rounded-lg shadow-lg font-mono transition">
+                    CLOSE & ENJOY DRINKS
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Host Settings / Padlock Customization Modal -->
+    <div id="config-modal" class="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-4 hidden">
+        <div class="max-w-md w-full border border-red-900 bg-black/95 p-6 rounded-xl shadow-2xl font-mono space-y-4">
+            <div class="flex justify-between items-center border-b border-red-900/50 pb-3">
+                <h3 class="text-lg font-bold text-red-500 flex items-center gap-2">
+                    <i class="fas fa-sliders"></i> HOST CONFIGURATION
+                </h3>
+                <button onclick="closeConfigModal()" class="text-gray-500 hover:text-white">&times;</button>
+            </div>
+
+            <p class="text-xs text-gray-400">
+                Match these 4 target digits with your physical padlock on the party room door.
+            </p>
+
+            <div class="grid grid-cols-4 gap-2">
+                <div>
+                    <label class="text-xs text-gray-500 block mb-1">Digit 1</label>
+                    <input type="number" id="cfg-digit-1" min="0" max="9" value="4" class="cyber-input w-full text-center py-2 text-lg font-bold">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500 block mb-1">Digit 2</label>
+                    <input type="number" id="cfg-digit-2" min="0" max="9" value="7" class="cyber-input w-full text-center py-2 text-lg font-bold">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500 block mb-1">Digit 3</label>
+                    <input type="number" id="cfg-digit-3" min="0" max="9" value="0" class="cyber-input w-full text-center py-2 text-lg font-bold">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-500 block mb-1">Digit 4</label>
+                    <input type="number" id="cfg-digit-4" min="0" max="9" value="1" class="cyber-input w-full text-center py-2 text-lg font-bold">
+                </div>
+            </div>
+
+            <div class="pt-3 flex gap-2">
+                <button onclick="saveConfig()" class="flex-1 py-2 bg-red-900 hover:bg-red-700 text-white font-bold text-xs uppercase rounded">
+                    Save Combination
+                </button>
+                <button onclick="resetGameProgress()" class="py-2 px-3 border border-gray-800 hover:bg-gray-800 text-gray-400 text-xs rounded">
+                    Reset Progress
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="w-full text-center py-3 text-xs text-gray-700 font-mono z-10">
+        HALLOWEEN ESCAPE ROOM PROTOCOL &bull; DRINKS ROOM LOCK &bull; HAVE FUN & STAY SPOOKY
+    </footer>
+
+    <script>
+        let audioCtx = null;
+        let ambientOscillator = null;
+        let ambientGain = null;
+        let isAudioPlaying = false;
+
+        function initAudio() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // Play keypress / click beep
+        function playBeepSound(freq = 440, type = 'sine', duration = 0.08) {
+            try {
+                initAudio();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch(e) {}
+        }
+
+        // Play wrong answer sound
+        function playBuzzerSound() {
+            try {
+                initAudio();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(110, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(55, audioCtx.currentTime + 0.4);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.4);
+            } catch(e) {}
+        }
+
+        // Play stage unlock chime
+        function playSuccessChime() {
+            try {
+                initAudio();
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                notes.forEach((note, index) => {
+                    setTimeout(() => {
+                        playBeepSound(note, 'triangle', 0.2);
+                    }, index * 90);
+                });
+            } catch(e) {}
+        }
+
+        // Play grand victory fanfare
+        function playVictorySound() {
+            try {
+                initAudio();
+                const arpeggio = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50];
+                arpeggio.forEach((freq, idx) => {
+                    setTimeout(() => {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.start();
+                        osc.stop(audioCtx.currentTime + 0.5);
+                    }, idx * 120);
+                });
+            } catch(e) {}
+        }
+
+        // Toggle creepy ambient sound drone generator
+        function toggleAmbientDrone() {
+            initAudio();
+            const btnText = document.getElementById('bgm-text');
+            const btnIcon = document.getElementById('bgm-icon');
+
+            if (isAudioPlaying) {
+                if (ambientGain) ambientGain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+                setTimeout(() => {
+                    if (ambientOscillator) ambientOscillator.stop();
+                    isAudioPlaying = false;
+                }, 500);
+                btnIcon.className = "fas fa-volume-xmark";
+                btnText.innerText = "AMBIENT AUDIO";
+            } else {
+                ambientOscillator = audioCtx.createOscillator();
+                ambientGain = audioCtx.createGain();
+                ambientOscillator.type = 'sawtooth';
+                ambientOscillator.frequency.setValueAtTime(55, audioCtx.currentTime); // Low A1 note
+                
+                // Lowpass filter for deep dark rumble
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(120, audioCtx.currentTime);
+
+                ambientGain.gain.setValueAtTime(0.001, audioCtx.currentTime);
+                ambientGain.gain.linearRampToValueAtTime(0.08, audioCtx.currentTime + 1);
+
+                ambientOscillator.connect(filter);
+                filter.connect(ambientGain);
+                ambientGain.connect(audioCtx.destination);
+
+                ambientOscillator.start();
+                isAudioPlaying = true;
+                btnIcon.className = "fas fa-volume-high text-green-400";
+                btnText.innerText = "AUDIO ON";
+            }
+        }
+
+        // Default secret combination assigned to stages (can be customized in Host Settings)
+        let targetDigits = {
+            1: '4',
+            2: '7',
+            3: '0',
+            4: '1'
+        };
+
+        let stageStatus = {
+            1: false,
+            2: false,
+            3: false,
+            4: false
+        };
+
+        // Initialize state on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadSavedConfig();
+            updateLockDisplay();
+        });
+
+        // Submit answer for stage
+        function submitStage(stageNum) {
+            playBeepSound(600, 'square', 0.05);
+            const inputVal = document.getElementById(`input-stage-${stageNum}`).value.trim().toLowerCase();
+            const msgElem = document.getElementById(`msg-${stageNum}`);
+
+            let isCorrect = false;
+
+            if (stageNum === 1) {
+                // Accepts "fire" (4) or "feuer" (5) -> both map to digit 1
+                if (inputVal === 'fire' || inputVal === 'feuer' || inputVal === '4' || inputVal === '5') {
+                    isCorrect = true;
+                }
+            } else if (stageNum === 2) {
+                if (inputVal === '7') {
+                    isCorrect = true;
+                }
+            } else if (stageNum === 3) {
+                if (inputVal.includes('shatner') || inputVal.includes('william')) {
+                    isCorrect = true;
+                }
+            } else if (stageNum === 4) {
+                if (inputVal === '1') {
+                    isCorrect = true;
+                }
+            }
+
+            if (isCorrect) {
+                stageStatus[stageNum] = true;
+                playSuccessChime();
+                
+                msgElem.innerText = `CORRECT! Digit ${stageNum} unlocked: [ ${targetDigits[stageNum]} ]`;
+                msgElem.className = "text-xs font-mono font-bold text-green-400 green-glow-text";
+                msgElem.classList.remove('hidden');
+
+                // Update lock display
+                updateLockDisplay();
+
+                // Unlock next stage if applicable
+                if (stageNum < 4) {
+                    unlockNextStageAccordion(stageNum + 1);
+                }
+
+                // Check victory
+                checkVictory();
+            } else {
+                playBuzzerSound();
+                msgElem.innerText = "INCORRECT! Trial failed. Try again...";
+                msgElem.className = "text-xs font-mono font-bold text-red-500 red-glow-text";
+                msgElem.classList.remove('hidden');
+            }
+        }
+
+        function unlockNextStageAccordion(nextStageNum) {
+            // Automatically open accordion for next stage
+            toggleAccordion(nextStageNum);
+        }
+
+        function updateLockDisplay() {
+            let solvedCount = 0;
+
+            for (let i = 1; i <= 4; i++) {
+                const card = document.getElementById(`digit-card-${i}`);
+                const valSpan = document.getElementById(`digit-val-${i}`);
+                const panel = document.getElementById(`stage-panel-${i}`);
+                const icon = document.getElementById(`stage-icon-${i}`);
+                const title = document.getElementById(`stage-title-${i}`);
+                const status = document.getElementById(`stage-status-${i}`);
+
+                if (stageStatus[i]) {
+                    solvedCount++;
+                    if (card) {
+                        card.className = "digit-box unlocked h-20 sm:h-24 rounded-lg flex flex-col items-center justify-center font-mono border-green-500 shadow-lg";
+                    }
+                    if (valSpan) {
+                        valSpan.innerText = targetDigits[i];
+                    }
+                    if (panel) {
+                        panel.classList.remove('opacity-60', 'pointer-events-none', 'border-gray-900', 'border-red-900/60');
+                        panel.classList.add('border-green-900/60');
+                    }
+                    if (icon) {
+                        icon.className = "w-7 h-7 rounded-full border border-green-500 bg-green-950/80 text-green-400 flex items-center justify-center text-xs font-bold";
+                        icon.innerHTML = '<i class="fas fa-check"></i>';
+                    }
+                    if (title) {
+                        title.className = "text-base font-bold text-green-400 tracking-wide";
+                    }
+                    if (status) {
+                        status.className = "text-xs text-green-400 font-bold border border-green-600 px-2 py-1 rounded bg-green-950/40 green-glow-text";
+                        status.innerText = "SOLVED";
+                    }
+                } else {
+                    if (card) {
+                        card.className = "digit-box locked h-20 sm:h-24 rounded-lg flex flex-col items-center justify-center font-mono border-red-900 shadow-inner";
+                    }
+                    if (valSpan) {
+                        valSpan.innerText = "?";
+                    }
+
+                    // Check if this unsolved stage is accessible (unlocked) or locked
+                    const isAccessible = (i === 1) || stageStatus[i - 1];
+                    if (isAccessible) {
+                        if (panel) {
+                            panel.classList.remove('opacity-60', 'pointer-events-none', 'border-gray-900', 'border-green-900/60');
+                            panel.classList.add('border-red-900/60');
+                        }
+                        if (icon) {
+                            icon.className = "w-7 h-7 rounded-full border border-red-600 bg-red-950/80 text-red-400 flex items-center justify-center text-xs font-bold";
+                            icon.innerText = i;
+                        }
+                        if (title) {
+                            title.className = "text-base font-bold text-red-500 tracking-wide";
+                        }
+                        if (status) {
+                            status.className = "text-xs text-red-500 font-bold border border-red-900 px-2 py-1 rounded bg-red-950/30";
+                            status.innerText = "UNLOCKED";
+                        }
+                    } else {
+                        if (panel) {
+                            panel.classList.remove('border-red-900/60', 'border-green-900/60');
+                            panel.classList.add('border-gray-900', 'opacity-60', 'pointer-events-none');
+                        }
+                        if (icon) {
+                            icon.className = "w-7 h-7 rounded-full border border-gray-700 bg-gray-900 text-gray-500 flex items-center justify-center text-xs font-bold";
+                            icon.innerText = i;
+                        }
+                        if (title) {
+                            title.className = "text-base font-bold text-gray-400 tracking-wide";
+                        }
+                        if (status) {
+                            status.className = "text-xs text-gray-600 font-bold border border-gray-800 px-2 py-1 rounded";
+                            status.innerText = "LOCKED";
+                        }
+                    }
+                }
+            }
+
+            // Update Progress bar
+            const percent = (solvedCount / 4) * 100;
+            document.getElementById('progress-bar').style.width = `${percent}%`;
+            document.getElementById('progress-text').innerText = `${solvedCount} OF 4 TRIALS COMPLETED`;
+
+            const badge = document.getElementById('status-badge');
+            if (solvedCount === 4) {
+                badge.innerText = "ACCESS GRANTED";
+                badge.className = "text-green-400 font-bold green-glow-text";
+            } else {
+                badge.innerText = "LOCKED";
+                badge.className = "text-red-500 font-bold";
+            }
+        }
+
+        function checkVictory() {
+            if (stageStatus[1] && stageStatus[2] && stageStatus[3] && stageStatus[4]) {
+                setTimeout(() => {
+                    playVictorySound();
+                    const codeStr = `${targetDigits[1]} - ${targetDigits[2]} - ${targetDigits[3]} - ${targetDigits[4]}`;
+                    document.getElementById('final-code-display').innerText = codeStr;
+                    document.getElementById('victory-modal').classList.remove('hidden');
+                }, 600);
+            }
+        }
+
+        function closeVictoryModal() {
+            document.getElementById('victory-modal').classList.add('hidden');
+        }
+
+        // Accordion functionality
+        function toggleAccordion(stageNum) {
+            playBeepSound(350, 'sine', 0.04);
+            for (let i = 1; i <= 4; i++) {
+                const body = document.getElementById(`stage-body-${i}`);
+                if (i === stageNum) {
+                    body.classList.toggle('hidden');
+                } else {
+                    body.classList.add('hidden');
+                }
+            }
+        }
+
+        // Toggle Hint system
+        function toggleHint(stageNum) {
+            playBeepSound(500, 'sine', 0.04);
+            const hintElem = document.getElementById(`hint-text-${stageNum}`);
+            const btnText = document.getElementById(`hint-btn-${stageNum}`);
+            if (hintElem.classList.contains('hidden')) {
+                hintElem.classList.remove('hidden');
+                btnText.innerText = "Hide Hint";
+            } else {
+                hintElem.classList.add('hidden');
+                btnText.innerText = "Show Hint";
+            }
+        }
+
+        function openConfigModal() {
+            playBeepSound(400, 'sine', 0.05);
+            document.getElementById('cfg-digit-1').value = targetDigits[1];
+            document.getElementById('cfg-digit-2').value = targetDigits[2];
+            document.getElementById('cfg-digit-3').value = targetDigits[3];
+            document.getElementById('cfg-digit-4').value = targetDigits[4];
+            document.getElementById('config-modal').classList.remove('hidden');
+        }
+
+        function closeConfigModal() {
+            document.getElementById('config-modal').classList.add('hidden');
+        }
+
+        function saveConfig() {
+            playBeepSound(800, 'triangle', 0.1);
+            targetDigits[1] = document.getElementById('cfg-digit-1').value || '4';
+            targetDigits[2] = document.getElementById('cfg-digit-2').value || '7';
+            targetDigits[3] = document.getElementById('cfg-digit-3').value || '0';
+            targetDigits[4] = document.getElementById('cfg-digit-4').value || '1';
+
+            localStorage.setItem('jigsaw_target_digits', JSON.stringify(targetDigits));
+            updateLockDisplay();
+            closeConfigModal();
+        }
+
+        function loadSavedConfig() {
+            const saved = localStorage.getItem('jigsaw_target_digits');
+            if (saved) {
+                try {
+                    targetDigits = JSON.parse(saved);
+                } catch(e) {}
+            }
+        }
+
+        function resetGameProgress() {
+            playBeepSound(200, 'sawtooth', 0.2);
+            stageStatus = { 1: false, 2: false, 3: false, 4: false };
+            updateLockDisplay();
+            
+            for (let i = 1; i <= 4; i++) {
+                const input = document.getElementById(`input-stage-${i}`);
+                if (input) input.value = '';
+                const msg = document.getElementById(`msg-${i}`);
+                if (msg) msg.classList.add('hidden');
+                const hint = document.getElementById(`hint-text-${i}`);
+                if (hint) hint.classList.add('hidden');
+                const hintBtn = document.getElementById(`hint-btn-${i}`);
+                if (hintBtn) hintBtn.innerText = "Show Hint";
+                const body = document.getElementById(`stage-body-${i}`);
+                if (body) {
+                    if (i === 1) body.classList.remove('hidden');
+                    else body.classList.add('hidden');
+                }
+            }
+            
+            closeConfigModal();
+        }
+    </script>
+</body>
+</html>
